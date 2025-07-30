@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animated Calculator</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: 
+                linear-gradient(45deg, rgba(102, 126, 234, 0.1) 25%, transparent 25%, transparent 75%, rgba(102, 126, 234, 0.1) 75%),
+                linear-gradient(45deg, rgba(102, 126, 234, 0.1) 25%, transparent 25%, transparent 75%, rgba(102, 126, 234, 0.1) 75%),
+                linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-size: 50px 50px, 50px 50px, 100% 100%;
+            background-position: 0 0, 25px 25px, 0 0;
+            padding: 20px;
+        }
+        
+        .math-symbols {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.05;
+        }
+        
+        .symbol {
+            position: absolute;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            animation: float 15s linear infinite;
+        }
+        
+        .calculator-container {
+            perspective: 1000px;
+        }
+        
+        .calculator {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transform-style: preserve-3d;
+            animation: float 8s ease-in-out infinite;
+        }
+        
+        .display {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+            text-align: right;
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .display-input {
+            color: white;
+            font-size: 2.5rem;
+            font-weight: 300;
+            border: none;
+            background: transparent;
+            width: 100%;
+            text-align: right;
+            outline: none;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+        }
+        
+        .buttons-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+        
+        .btn {
+            border: none;
+            border-radius: 12px;
+            padding: 18px 0;
+            font-size: 1.3rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            transform-style: preserve-3d;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(100%);
+            transition: transform 0.2s ease;
+        }
+        
+        .btn:hover::before {
+            transform: translateY(0);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+        
+        .number {
+            background: linear-gradient(145deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+        }
+        
+        .operator {
+            background: linear-gradient(145deg, #ff416c 0%, #ff4b2b 100%);
+            color: white;
+        }
+        
+        .equals {
+            background: linear-gradient(145deg, #00b09b 0%, #96c93d 100%);
+            color: white;
+            grid-column: span 2;
+        }
+        
+        .clear {
+            background: linear-gradient(145deg, #8e2de2 0%, #4a00e0 100%);
+            color: white;
+        }
+        
+        .decimal {
+            background: linear-gradient(145deg, #f7971e 0%, #ffd200 100%);
+            color: white;
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) rotateX(2deg) rotateY(2deg);
+            }
+            50% {
+                transform: translateY(-10px) rotateX(-2deg) rotateY(-2deg);
+            }
+        }
+        
+        @keyframes symbol-float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        .title {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+            font-size: 2.2rem;
+        }
+        
+        .title span {
+            display: inline-block;
+            animation: bounce 3s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+        
+        .btn-0 { animation-delay: 0.05s; }
+        .btn-1 { animation-delay: 0.1s; }
+        .btn-2 { animation-delay: 0.15s; }
+        .btn-3 { animation-delay: 0.2s; }
+        .btn-4 { animation-delay: 0.25s; }
+        .btn-5 { animation-delay: 0.3s; }
+        .btn-6 { animation-delay: 0.35s; }
+        .btn-7 { animation-delay: 0.4s; }
+        .btn-8 { animation-delay: 0.45s; }
+        .btn-9 { animation-delay: 0.5s; }
+        .btn-add { animation-delay: 0.55s; }
+        .btn-subtract { animation-delay: 0.6s; }
+        .btn-multiply { animation-delay: 0.65s; }
+        .btn-divide { animation-delay: 0.7s; }
+        .btn-equals { animation-delay: 0.75s; }
+        .btn-clear { animation-delay: 0.8s; }
+        .btn-decimal { animation-delay: 0.85s; }
+    </style>
+</head>
+<body>
+    <div class="math-symbols" id="mathSymbols"></div>
+    
+    <div class="calculator-container">
+        <h1 class="title animate__animated animate__fadeInDown">
+            <span class="animate__animated animate__bounce animate__infinite animate__delay-1s">C</span>
+            <span class="animate__animated animate__bounce animate__infinite animate__delay-2s">A</span>
+            <span class="animate__animated animate__bounce animate__infinite animate__delay-3s">L</span>
+            <span class="animate__animated animate__bounce animate__infinite animate__delay-4s">C</span>
+            <span class="animate__animated animate__bounce animate__infinite animate__delay-5s">U</span>
+            <span class="animate__animated animate__bounce animate__infinite animate__delay-6s">L</span>
+            <span class="animate__animated animate__bounce animate__infinite animate__delay-7s">A</span>
+            <span class="animate__animated animate__bounce animate__infinite animate__delay-8s">T</span>
+            <span class="animate__animated animate__bounce animate__infinite animate__delay-9s">O</span>
+            <span class="animate__animated animate__bounce animate__infinite animate__delay-10s">R</span>
+        </h1>
+        
+        <div class="calculator animate__animated animate__fadeInUp">
+            <div class="display">
+                <input type="text" class="display-input" id="display" value="0" readonly>
+            </div>
+            
+            <div class="buttons-grid">
+                <button class="btn clear animate__animated animate__fadeInUp btn-clear" onclick="clearDisplay()">C</button>
+                <button class="btn operator animate__animated animate__fadeInUp btn-divide" onclick="appendToDisplay('/')">/</button>
+                <button class="btn operator animate__animated animate__fadeInUp btn-multiply" onclick="appendToDisplay('*')">×</button>
+                <button class="btn operator animate__animated animate__fadeInUp btn-subtract" onclick="appendToDisplay('-')">-</button>
+                
+                <button class="btn number animate__animated animate__fadeInUp btn-7" onclick="appendToDisplay('7')">7</button>
+                <button class="btn number animate__animated animate__fadeInUp btn-8" onclick="appendToDisplay('8')">8</button>
+                <button class="btn number animate__animated animate__fadeInUp btn-9" onclick="appendToDisplay('9')">9</button>
+                <button class="btn operator animate__animated animate__fadeInUp btn-add" onclick="appendToDisplay('+')">+</button>
+                
+                <button class="btn number animate__animated animate__fadeInUp btn-4" onclick="appendToDisplay('4')">4</button>
+                <button class="btn number animate__animated animate__fadeInUp btn-5" onclick="appendToDisplay('5')">5</button>
+                <button class="btn number animate__animated animate__fadeInUp btn-6" onclick="appendToDisplay('6')">6</button>
+                <button class="btn number animate__animated animate__fadeInUp btn-1" onclick="appendToDisplay('1')">1</button>
+                
+                <button class="btn number animate__animated animate__fadeInUp btn-2" onclick="appendToDisplay('2')">2</button>
+                <button class="btn number animate__animated animate__fadeInUp btn-3" onclick="appendToDisplay('3')">3</button>
+                <button class="btn number animate__animated animate__fadeInUp btn-0" onclick="appendToDisplay('0')">0</button>
+                <button class="btn decimal animate__animated animate__fadeInUp btn-decimal" onclick="appendToDisplay('.')">.</button>
+                
+                <button class="btn equals animate__animated animate__fadeInUp btn-equals" onclick="calculate()">=</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Create floating math symbols
+        const symbols = ['+', '−', '×', '÷', '=', '∫', '∑', '∏', '√', '∞', '∠', '⊥', '∥', '≅', '≈', '≠', '≤', '≥', '⊂', '⊃'];
+        const mathSymbolsContainer = document.getElementById('mathSymbols');
+        
+        for (let i = 0; i < 30; i++) {
+            const symbol = document.createElement('div');
+            symbol.className = 'symbol';
+            symbol.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+            symbol.style.left = Math.random() * 100 + 'vw';
+            symbol.style.animationDelay = Math.random() * 15 + 's';
+            symbol.style.fontSize = (16 + Math.random() * 20) + 'px';
+            mathSymbolsContainer.appendChild(symbol);
+        }
+        
+        let display = document.getElementById('display');
+        let currentInput = '0';
+        let shouldResetDisplay = false;
+        
+        function updateDisplay() {
+            display.value = currentInput;
+        }
+        
+        function appendToDisplay(value) {
+            if (currentInput === '0' || shouldResetDisplay) {
+                currentInput = value;
+                shouldResetDisplay = false;
+            } else {
+                currentInput += value;
+            }
+            updateDisplay();
+        }
+        
+        function clearDisplay() {
+            currentInput = '0';
+            shouldResetDisplay = false;
+            updateDisplay();
+        }
+        
+        function calculate() {
+            try {
+                // Replace × with * for evaluation
+                let expression = currentInput.replace(/×/g, '*');
+                let result = eval(expression);
+                
+                // Format result to avoid long decimals
+                if (result % 1 !== 0) {
+                    result = parseFloat(result.toFixed(10));
+                }
+                
+                currentInput = result.toString();
+                shouldResetDisplay = true;
+                updateDisplay();
+                
+                // Add subtle animation to result
+                display.classList.add('animate__animated', 'animate__pulse');
+                setTimeout(() => {
+                    display.classList.remove('animate__animated', 'animate__pulse');
+                }, 500);
+                
+            } catch (error) {
+                currentInput = 'Error';
+                shouldResetDisplay = true;
+                updateDisplay();
+                
+                // Add error animation
+                display.classList.add('animate__animated', 'animate__shakeX');
+                setTimeout(() => {
+                    display.classList.remove('animate__animated', 'animate__shakeX');
+                    clearDisplay();
+                }, 500);
+            }
+        }
+        
+        // Add keyboard support
+        document.addEventListener('keydown', function(event) {
+            const key = event.key;
+            
+            if (key >= '0' && key <= '9' || key === '.') {
+                appendToDisplay(key);
+            } else if (key === '+' || key === '-' || key === '*' || key === '/') {
+                appendToDisplay(key);
+            } else if (key === 'Enter' || key === '=') {
+                calculate();
+            } else if (key === 'Escape' || key === 'c' || key === 'C') {
+                clearDisplay();
+            } else if (key === 'Backspace') {
+                if (currentInput.length > 1) {
+                    currentInput = currentInput.slice(0, -1);
+                } else {
+                    currentInput = '0';
+                }
+                updateDisplay();
+            }
+        });
+        
+        // Add hover effects to buttons
+        const buttons = document.querySelectorAll('.btn');
+        buttons.forEach(button => {
+            button.addEventListener('mouseenter', function() {
+                this.classList.add('animate__animated', 'animate__rubberBand');
+            });
+            
+            button.addEventListener('animationend', function() {
+                this.classList.remove('animate__animated', 'animate__rubberBand');
+            });
+        });
+    </script>
+</body>
+</html>

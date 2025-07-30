@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecurePass - Advanced Password Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        .floating {
+            animation: float 6s ease-in-out infinite;
+        }
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #a855f7, #ec4899);
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        .slider::-moz-range-thumb {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #a855f7, #ec4899);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        .password-display {
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+        }
+        body {
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen relative">
+    <!-- Animated background elements -->
+    <div class="absolute inset-0">
+        <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
+        <div class="absolute top-3/4 right-1/4 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-1000"></div>
+        <div class="absolute bottom-1/4 left-1/2 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-500"></div>
+    </div>
+
+    <div class="relative z-10 container mx-auto px-4 py-12">
+        <div class="text-center mb-12">
+            <div class="flex justify-center mb-6">
+                <div class="bg-white/10 backdrop-blur-sm rounded-full p-4 border border-white/20">
+                    <i class="fas fa-lock text-5xl text-purple-300"></i>
+                </div>
+            </div>
+            <h1 class="text-5xl md:text-7xl font-bold text-white mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                SecurePass
+            </h1>
+            <p class="text-xl text-gray-300 max-w-2xl mx-auto">
+                Generate strong, customizable passwords with advanced security features
+            </p>
+        </div>
+
+        <div class="max-w-4xl mx-auto">
+            <!-- Password Display Card -->
+            <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 shadow-2xl mb-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-semibold text-white">Your Password</h2>
+                    <div class="flex items-center space-x-2">
+                        <button id="settingsToggle" class="p-2 text-gray-300 hover:text-white transition-colors duration-200">
+                            <i class="fas fa-sliders-h text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="relative mb-6">
+                    <input 
+                        type="password" 
+                        id="passwordDisplay" 
+                        readonly
+                        class="w-full bg-white/5 border border-white/20 rounded-xl px-6 py-4 text-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 password-display"
+                        placeholder="Your generated password will appear here"
+                    >
+                    <div class="absolute right-4 top-1/2 transform -translate-y-1/2 flex space-x-2">
+                        <button id="toggleVisibility" class="p-2 text-gray-400 hover:text-white transition-colors duration-200">
+                            <i class="fas fa-eye text-lg"></i>
+                        </button>
+                        <button id="copyButton" class="p-2 text-gray-400 hover:text-white transition-colors duration-200">
+                            <i class="fas fa-copy text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Password Strength -->
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium text-gray-300">Password Strength</span>
+                        <span id="strengthLabel" class="text-sm font-semibold text-white capitalize">Medium</span>
+                    </div>
+                    <div class="w-full bg-white/20 rounded-full h-2">
+                        <div id="strengthBar" class="h-2 rounded-full bg-yellow-500 w-2/3 transition-all duration-500"></div>
+                    </div>
+                </div>
+
+                <button id="generateBtn" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center justify-center space-x-2">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Generate New Password</span>
+                </button>
+            </div>
+
+            <!-- Settings Panel -->
+            <div id="settingsPanel" class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 shadow-2xl overflow-hidden hidden">
+                <h3 class="text-xl font-semibold text-white mb-6 flex items-center">
+                    <i class="fas fa-shield-alt text-purple-300 mr-2"></i>
+                    Password Settings
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Length Slider -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-3">
+                            Password Length: <span id="lengthValue">12</span>
+                        </label>
+                        <input 
+                            type="range" 
+                            id="lengthSlider" 
+                            min="4" 
+                            max="32" 
+                            value="12"
+                            class="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+                        >
+                        <div class="flex justify-between text-xs text-gray-400 mt-1">
+                            <span>4</span>
+                            <span>32</span>
+                        </div>
+                    </div>
+
+                    <!-- Character Types -->
+                    <div class="space-y-3">
+                        <div class="flex items-center">
+                            <input 
+                                type="checkbox" 
+                                id="uppercase" 
+                                checked
+                                class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
+                            >
+                            <label for="uppercase" class="ml-2 text-sm font-medium text-gray-300">
+                                Include Uppercase (A-Z)
+                            </label>
+                        </div>
+                        <div class="flex items-center">
+                            <input 
+                                type="checkbox" 
+                                id="lowercase" 
+                                checked
+                                class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
+                            >
+                            <label for="lowercase" class="ml-2 text-sm font-medium text-gray-300">
+                                Include Lowercase (a-z)
+                            </label>
+                        </div>
+                        <div class="flex items-center">
+                            <input 
+                                type="checkbox" 
+                                id="numbers" 
+                                checked
+                                class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
+                            >
+                            <label for="numbers" class="ml-2 text-sm font-medium text-gray-300">
+                                Include Numbers (0-9)
+                            </label>
+                        </div>
+                        <div class="flex items-center">
+                            <input 
+                                type="checkbox" 
+                                id="symbols" 
+                                checked
+                                class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
+                            >
+                            <label for="symbols" class="ml-2 text-sm font-medium text-gray-300">
+                                Include Symbols (!@#$%^&*)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Validation Message -->
+                <div id="validationMessage" class="mt-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center hidden">
+                    <i class="fas fa-exclamation-circle text-red-400 mr-2"></i>
+                    <span class="text-sm text-red-300">
+                        Please select at least one character type to generate a password
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features -->
+        <div class="max-w-4xl mx-auto mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:bg-white/10 transition-all duration-300">
+                <div class="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4">
+                    <i class="fas fa-shield-alt text-2xl text-purple-300"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Military Grade Security</h3>
+                <p class="text-gray-300 text-sm">Generate cryptographically strong passwords using secure algorithms</p>
+            </div>
+            <div class="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:bg-white/10 transition-all duration-300">
+                <div class="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4">
+                    <i class="fas fa-sliders-h text-2xl text-purple-300"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Fully Customizable</h3>
+                <p class="text-gray-300 text-sm">Tailor your password with specific character requirements</p>
+            </div>
+            <div class="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:bg-white/10 transition-all duration-300">
+                <div class="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4">
+                    <i class="fas fa-copy text-2xl text-purple-300"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">One-Click Copy</h3>
+                <p class="text-gray-300 text-sm">Instantly copy passwords to clipboard with secure handling</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const passwordDisplay = document.getElementById('passwordDisplay');
+        const generateBtn = document.getElementById('generateBtn');
+        const copyButton = document.getElementById('copyButton');
+        const toggleVisibility = document.getElementById('toggleVisibility');
+        const settingsToggle = document.getElementById('settingsToggle');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const lengthSlider = document.getElementById('lengthSlider');
+        const lengthValue = document.getElementById('lengthValue');
+        const uppercase = document.getElementById('uppercase');
+        const lowercase = document.getElementById('lowercase');
+        const numbers = document.getElementById('numbers');
+        const symbols = document.getElementById('symbols');
+        const strengthBar = document.getElementById('strengthBar');
+        const strengthLabel = document.getElementById('strengthLabel');
+        const validationMessage = document.getElementById('validationMessage');
+
+        // Character sets
+        const uppercaseChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const lowercaseChars = 'abcdefghijklmnopqrstuvwxyz';
+        const numberChars = '0123456789';
+        const symbolChars = '!@#$%^&*()_+[]{}|;:,.<>?';
+
+        // State
+        let showPassword = false;
+        let showSettings = false;
+
+        // Generate password
+        function generatePassword() {
+            const length = parseInt(lengthSlider.value);
+            let chars = '';
+            let requiredChars = '';
+
+            if (uppercase.checked) {
+                chars += uppercaseChars;
+                requiredChars += uppercaseChars[Math.floor(Math.random() * uppercaseChars.length)];
+            }
+            if (lowercase.checked) {
+                chars += lowercaseChars;
+                requiredChars += lowercaseChars[Math.floor(Math.random() * lowercaseChars.length)];
+            }
+            if (numbers.checked) {
+                chars += numberChars;
+                requiredChars += numberChars[Math.floor(Math.random() * numberChars.length)];
+            }
+            if (symbols.checked) {
+                chars += symbolChars;
+                requiredChars += symbolChars[Math.floor(Math.random() * symbolChars.length)];
+            }
+
+            if (chars === '') {
+                passwordDisplay.value = 'Select at least one character type';
+                updateStrength('weak');
+                validationMessage.classList.remove('hidden');
+                return;
+            }
+
+            validationMessage.classList.add('hidden');
+            
+            let newPassword = requiredChars;
+            const remainingLength = Math.max(0, length - requiredChars.length);
+
+            for (let i = 0; i < remainingLength; i++) {
+                newPassword += chars[Math.floor(Math.random() * chars.length)];
+            }
+
+            // Shuffle the password
+            newPassword = newPassword.split('').sort(() => 0.5 - Math.random()).join('');
+            
+            passwordDisplay.value = newPassword;
+            updateStrength(calculateStrength(newPassword));
+        }
+
+        // Calculate password strength
+        function calculateStrength(password) {
+            let score = 0;
+            if (password.length >= 8) score++;
+            if (password.length >= 12) score++;
+            if (/[a-z]/.test(password)) score++;
+            if (/[A-Z]/.test(password)) score++;
+            if (/[0-9]/.test(password)) score++;
+            if (/[^A-Za-z0-9]/.test(password)) score++;
+            
+            if (score <= 2) return 'weak';
+            if (score <= 4) return 'medium';
+            return 'strong';
+        }
+
+        // Update strength display
+        function updateStrength(strength) {
+            const strengthConfig = {
+                weak: { width: '33%', color: 'bg-red-500', label: 'Weak' },
+                medium: { width: '66%', color: 'bg-yellow-500', label: 'Medium' },
+                strong: { width: '100%', color: 'bg-green-500', label: 'Strong' }
+            };
+            
+            const config = strengthConfig[strength];
+            strengthBar.className = `h-2 rounded-full ${config.color} transition-all duration-500`;
+            strengthBar.style.width = config.width;
+            strengthLabel.textContent = config.label;
+            strengthLabel.className = `text-sm font-semibold text-white capitalize`;
+        }
+
+        // Copy to clipboard
+        async function copyToClipboard() {
+            if (passwordDisplay.value && !passwordDisplay.value.includes('Select')) {
+                try {
+                    await navigator.clipboard.writeText(passwordDisplay.value);
+                    const originalIcon = copyButton.innerHTML;
+                    copyButton.innerHTML = '<i class="fas fa-check text-green-400 text-lg"></i>';
+                    setTimeout(() => {
+                        copyButton.innerHTML = originalIcon;
+                    }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy password');
+                }
+            }
+        }
+
+        // Toggle password visibility
+        function togglePasswordVisibility() {
+            showPassword = !showPassword;
+            passwordDisplay.type = showPassword ? 'text' : 'password';
+            toggleVisibility.innerHTML = showPassword ? 
+                '<i class="fas fa-eye-slash text-lg"></i>' : 
+                '<i class="fas fa-eye text-lg"></i>';
+        }
+
+        // Toggle settings panel
+        function toggleSettings() {
+            showSettings = !showSettings;
+            settingsPanel.classList.toggle('hidden');
+        }
+
+        // Update length display
+        function updateLengthDisplay() {
+            lengthValue.textContent = lengthSlider.value;
+        }
+
+        // Event Listeners
+        generateBtn.addEventListener('click', generatePassword);
+        copyButton.addEventListener('click', copyToClipboard);
+        toggleVisibility.addEventListener('click', togglePasswordVisibility);
+        settingsToggle.addEventListener('click', toggleSettings);
+        lengthSlider.addEventListener('input', updateLengthDisplay);
+        lengthSlider.addEventListener('input', generatePassword);
+        uppercase.addEventListener('change', generatePassword);
+        lowercase.addEventListener('change', generatePassword);
+        numbers.addEventListener('change', generatePassword);
+        symbols.addEventListener('change', generatePassword);
+
+        // Initialize
+        updateLengthDisplay();
+        generatePassword();
+    </script>
+</body>
+</html>
