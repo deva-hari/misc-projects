@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en" class="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Markdown Previewer</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- SimpleMDE Markdown Editor -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
+    <script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- GitHub Markdown CSS for Preview Styling -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.1/github-markdown.min.css">
+
+    <style>
+        /* Custom styles for the application */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* SimpleMDE Customizations */
+        .editor-toolbar {
+            border-top-left-radius: 0.5rem;
+            border-top-right-radius: 0.5rem;
+            border-color: #374151 !important; /* gray-700 */
+        }
+        .CodeMirror {
+            border-bottom-left-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
+            border-color: #374151 !important; /* gray-700 */
+            min-height: calc(100vh - 150px);
+        }
+
+        /* Dark Mode Styles */
+        .dark .bg-gray-100 { background-color: #111827; } /* gray-900 */
+        .dark .bg-white { background-color: #1f2937; } /* gray-800 */
+        .dark .text-gray-800 { color: #d1d5db; } /* gray-300 */
+        .dark .text-gray-600 { color: #9ca3af; } /* gray-400 */
+        .dark .border-gray-300 { border-color: #374151; } /* gray-700 */
+        .dark .hover\:bg-gray-200:hover { background-color: #374151; } /* gray-700 */
+        .dark .hover\:bg-purple-700:hover { background-color: #7e22ce; } /* purple-700 */
+        
+        /* Dark mode for SimpleMDE */
+        .dark .editor-toolbar, .dark .CodeMirror, .dark .editor-statusbar {
+            background-color: #1f2937; /* gray-800 */
+            color: #d1d5db; /* gray-300 */
+            border-color: #4b5563 !important; /* gray-600 */
+        }
+        .dark .editor-toolbar a {
+            color: #d1d5db !important; /* gray-300 */
+        }
+        .dark .editor-toolbar a.active, .dark .editor-toolbar a:hover {
+            background: #374151; /* gray-700 */
+            border-color: #4b5563; /* gray-600 */
+        }
+        .dark .CodeMirror-cursor {
+            border-left-color: #d1d5db; /* gray-300 */
+        }
+        
+        /* Dark mode for GitHub Preview */
+        .dark .markdown-body {
+            color-scheme: dark;
+        }
+
+        /* Hide the default file input */
+        #file-upload-input {
+            display: none;
+        }
+
+        /* Loader styles */
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #5b21b6; /* Purple */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Modal styles */
+        .modal {
+            transition: opacity 0.25s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 transition-colors duration-300">
+
+    <div id="app" class="flex flex-col h-screen">
+        <!-- Header / Toolbar -->
+        <header class="bg-white border-b border-gray-300 p-2 sm:p-3 flex items-center justify-between flex-wrap gap-2 shadow-sm">
+            <h1 class="text-lg sm:text-xl font-bold text-gray-800">AI Markdown Previewer</h1>
+            <div class="flex items-center space-x-2 flex-wrap gap-2">
+                <button id="summarize-btn" title="Summarize Content" class="px-3 py-2 text-sm font-medium rounded-md bg-purple-600 hover:bg-purple-700 text-white transition-colors">
+                    ✨ Summarize
+                </button>
+                 <button id="continue-btn" title="Continue Writing" class="px-3 py-2 text-sm font-medium rounded-md bg-purple-600 hover:bg-purple-700 text-white transition-colors">
+                    ✨ Continue Writing
+                </button>
+                <button id="reset-btn" title="Reset to sample content" class="px-3 py-2 text-sm font-medium rounded-md bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors">
+                    <i class="fas fa-undo mr-1"></i> Reset
+                </button>
+                <button id="download-btn" title="Download as .md file" class="px-3 py-2 text-sm font-medium rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-colors">
+                    <i class="fas fa-download mr-1"></i> Download
+                </button>
+                 <button id="dark-mode-toggle" title="Toggle Dark Mode" class="px-3 py-2 text-sm font-medium rounded-md bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-grow p-4 relative">
+            <!-- Tabs for smaller screens -->
+            <div id="tabs" class="mb-4 lg:hidden">
+                <button data-tab="editor" class="tab-btn px-4 py-2 rounded-t-md bg-white border-b-2 border-blue-500">Editor</button>
+                <button data-tab="preview" class="tab-btn px-4 py-2 rounded-t-md bg-gray-200">Preview</button>
+            </div>
+            
+            <!-- Grid for side-by-side view -->
+            <div id="content-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
+                <!-- Editor Pane -->
+                <div id="editor-pane" class="h-full">
+                     <div id="drop-zone" class="relative border-2 border-dashed border-gray-300 rounded-lg h-full">
+                        <div class="p-1 bg-white rounded-lg h-full">
+                           <textarea id="markdown-editor"></textarea>
+                        </div>
+                        <!-- Upload Instructions -->
+                        <div id="drop-zone-text" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 bg-opacity-50 text-white p-4 rounded-lg pointer-events-none">
+                            <i class="fas fa-file-upload fa-3x mb-4"></i>
+                            <p class="text-xl font-semibold">Drop a .md file here</p>
+                            <p class="text-sm">or click to select a file</p>
+                        </div>
+                     </div>
+                </div>
+
+                <!-- Preview Pane -->
+                <div id="preview-pane" class="h-full hidden lg:block">
+                    <div class="bg-white rounded-lg shadow-inner h-full overflow-y-auto">
+                        <div id="preview-content" class="markdown-body p-6"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Hidden file input -->
+    <input type="file" id="file-upload-input" accept=".md, .markdown, text/markdown">
+
+    <!-- Loader Overlay -->
+    <div id="loader-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="loader"></div>
+    </div>
+
+    <!-- Summary Modal -->
+    <div id="summary-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-40 p-4" style="opacity: 0; pointer-events: none;">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-2xl transform transition-transform duration-300 scale-95">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">✨ Content Summary</h2>
+                <button id="close-modal-btn" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+                    <i class="fas fa-times fa-lg"></i>
+                </button>
+            </div>
+            <div id="summary-content" class="text-gray-700 dark:text-gray-300 max-h-[60vh] overflow-y-auto">
+                <!-- Summary will be injected here -->
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- ELEMENTS ---
+            const editorEl = document.getElementById('markdown-editor');
+            const previewContentEl = document.getElementById('preview-content');
+            const darkModeToggleBtn = document.getElementById('dark-mode-toggle');
+            const downloadBtn = document.getElementById('download-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const dropZone = document.getElementById('drop-zone');
+            const dropZoneText = document.getElementById('drop-zone-text');
+            const fileInput = document.getElementById('file-upload-input');
+            const contentGrid = document.getElementById('content-grid');
+            const editorPane = document.getElementById('editor-pane');
+            const previewPane = document.getElementById('preview-pane');
+            const tabsContainer = document.getElementById('tabs');
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const summarizeBtn = document.getElementById('summarize-btn');
+            const continueBtn = document.getElementById('continue-btn');
+            const loaderOverlay = document.getElementById('loader-overlay');
+            const summaryModal = document.getElementById('summary-modal');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            const summaryContentEl = document.getElementById('summary-content');
+
+            // --- INITIAL CONTENT ---
+            const initialMarkdown = `# Welcome to your AI-Powered Markdown Previewer!
+
+## 🚀 Enhanced with Gemini AI
+- **Tailwind CSS** for styling
+- **SimpleMDE** for the editor
+- **Marked.js** for live previewing
+- **Gemini API** for intelligent features
+
+### ✨ New AI Features
+1.  **Summarize Content**: Click the "Summarize" button to get a quick overview of your document.
+2.  **Continue Writing**: Stuck? Let the AI continue writing from where you left off.
+3.  **Live Preview**: What you type on the left is rendered on the right.
+4.  **Dark Mode**: Click the moon icon to toggle themes.
+5.  **File Support**: Drag & drop or click to upload a \`.md\` file.
+6.  **Download**: Save your work as a Markdown file.
+
+#### Example Code Block
+\`\`\`javascript
+function greet() {
+  console.log("Hello, World!");
+}
+\`\`\`
+
+> This is a blockquote. Perfect for highlighting important information.
+
+Try out the new AI features now!
+`;
+
+            // --- INITIALIZATION ---
+            
+            // Initialize SimpleMDE Editor
+            const simplemde = new SimpleMDE({
+                element: editorEl,
+                initialValue: initialMarkdown,
+                spellChecker: false,
+                toolbar: ["bold", "italic", "heading", "|", "quote", "code", "unordered-list", "ordered-list", "|", "link", "image", "|", "preview", "side-by-side", "fullscreen", "|", "guide"],
+                status: false,
+                autofocus: true,
+            });
+
+            // Function to update the preview
+            const updatePreview = () => {
+                const markdownText = simplemde.value();
+                previewContentEl.innerHTML = marked.parse(markdownText);
+                dropZoneText.style.display = markdownText.trim() === '' ? 'flex' : 'none';
+            };
+
+            updatePreview();
+
+            // --- EVENT LISTENERS ---
+
+            simplemde.codemirror.on("change", updatePreview);
+            
+            // Dark Mode
+            const applyDarkMode = (isDark) => {
+                const html = document.documentElement;
+                const icon = darkModeToggleBtn.querySelector('i');
+                if (isDark) {
+                    html.classList.add('dark');
+                    icon.classList.remove('fa-moon');
+                    icon.classList.add('fa-sun');
+                } else {
+                    html.classList.remove('dark');
+                    icon.classList.remove('fa-sun');
+                    icon.classList.add('fa-moon');
+                }
+            };
+
+            darkModeToggleBtn.addEventListener('click', () => {
+                const isDark = document.documentElement.classList.toggle('dark');
+                localStorage.setItem('darkMode', isDark);
+                applyDarkMode(isDark);
+            });
+
+            if (localStorage.getItem('darkMode') === 'false') {
+                applyDarkMode(false);
+            } else {
+                applyDarkMode(true);
+            }
+
+            // Download Button
+            downloadBtn.addEventListener('click', () => {
+                const content = simplemde.value();
+                const blob = new Blob([content], { type: 'text/markdown' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'markdown-file.md';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+
+            // Reset Button
+            resetBtn.addEventListener('click', () => {
+                simplemde.value(initialMarkdown);
+                updatePreview();
+            });
+
+            // File Upload
+            dropZone.addEventListener('click', () => { if (simplemde.value().trim() === '') fileInput.click(); });
+            fileInput.addEventListener('change', (e) => { if (e.target.files[0]) readFile(e.target.files[0]); });
+            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.add('border-blue-500'); });
+            dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('border-blue-500'); });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('border-blue-500');
+                const file = e.dataTransfer.files[0];
+                if (file && file.type === 'text/markdown') {
+                    readFile(file);
+                } else {
+                    alert('Please drop a valid .md file.');
+                }
+            });
+            const readFile = (file) => {
+                const reader = new FileReader();
+                reader.onload = (e) => simplemde.value(e.target.result);
+                reader.readAsText(file);
+            };
+
+            // Tabs for small screens
+            tabsContainer.addEventListener('click', (e) => {
+                if (e.target.matches('.tab-btn')) {
+                    const targetTab = e.target.dataset.tab;
+                    tabButtons.forEach(btn => btn.classList.remove('bg-white', 'border-blue-500', 'dark:bg-gray-800'));
+                    e.target.classList.add('bg-white', 'border-blue-500', 'dark:bg-gray-800');
+                    editorPane.classList.toggle('hidden', targetTab !== 'editor');
+                    previewPane.classList.toggle('hidden', targetTab !== 'preview');
+                }
+            });
+
+            // --- GEMINI API FEATURES ---
+
+            const showLoader = (show) => {
+                loaderOverlay.classList.toggle('hidden', !show);
+            };
+            
+            const showModal = (show) => {
+                const modalContent = summaryModal.querySelector('div');
+                if (show) {
+                    summaryModal.classList.remove('hidden');
+                    setTimeout(() => {
+                        summaryModal.style.opacity = '1';
+                        summaryModal.style.pointerEvents = 'auto';
+                        modalContent.style.transform = 'scale(1)';
+                    }, 10);
+                } else {
+                    summaryModal.style.opacity = '0';
+                    summaryModal.style.pointerEvents = 'none';
+                    modalContent.style.transform = 'scale(0.95)';
+                    setTimeout(() => summaryModal.classList.add('hidden'), 250);
+                }
+            };
+            
+            closeModalBtn.addEventListener('click', () => showModal(false));
+            summaryModal.addEventListener('click', (e) => {
+                if (e.target === summaryModal) showModal(false);
+            });
+
+            // Generic function to call Gemini API
+            async function callGemini(prompt, retries = 3, delay = 1000) {
+                showLoader(true);
+                // Get API key from localStorage or prompt user
+                let apiKey = localStorage.getItem('geminiApiKey') || '';
+                if (!apiKey) {
+                    // Show modal to ask for API key
+                    let keyModal = document.createElement('div');
+                    keyModal.className = "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
+                    keyModal.innerHTML = `
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm">
+                            <h2 class="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">Enter Gemini API Key</h2>
+                            <input id="api-key-input" type="text" class="w-full p-2 border rounded mb-4 dark:bg-gray-700 dark:text-gray-200" placeholder="Paste your API key here">
+                            <button id="save-api-key-btn" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 w-full">Save</button>
+                        </div>
+                    `;
+                    document.body.appendChild(keyModal);
+
+                    await new Promise((resolve) => {
+                        keyModal.querySelector('#save-api-key-btn').onclick = () => {
+                            const input = keyModal.querySelector('#api-key-input').value.trim();
+                            if (input) {
+                                apiKey = input;
+                                localStorage.setItem('geminiApiKey', apiKey);
+                                document.body.removeChild(keyModal);
+                                resolve();
+                            }
+                        };
+                    });
+                }
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: prompt }] }]
+                };
+
+                for (let i = 0; i < retries; i++) {
+                    try {
+                        const response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+
+                        const result = await response.json();
+                        
+                        if (result.candidates && result.candidates.length > 0 && result.candidates[0].content.parts.length > 0) {
+                            showLoader(false);
+                            return result.candidates[0].content.parts[0].text;
+                        } else {
+                            throw new Error("Invalid response structure from API.");
+                        }
+                    } catch (error) {
+                        console.error(`Attempt ${i + 1} failed:`, error);
+                        if (i === retries - 1) {
+                            showLoader(false);
+                            alert(`An error occurred after multiple retries: ${error.message}`);
+                            return null;
+                        }
+                        await new Promise(res => setTimeout(res, delay * Math.pow(2, i)));
+                    }
+                }
+            }
+
+            // Summarize button click handler
+            summarizeBtn.addEventListener('click', async () => {
+                const content = simplemde.value();
+                if (content.trim().length < 50) {
+                    alert("Please provide more content to summarize.");
+                    return;
+                }
+                const prompt = `Please provide a concise summary of the following markdown document:\n\n---\n\n${content}`;
+                const summary = await callGemini(prompt);
+                if (summary) {
+                    summaryContentEl.innerHTML = marked.parse(summary);
+                    showModal(true);
+                }
+            });
+
+            // Continue Writing button click handler
+            continueBtn.addEventListener('click', async () => {
+                const content = simplemde.value();
+                 if (content.trim().length < 10) {
+                    alert("Please provide more content to continue from.");
+                    return;
+                }
+                const prompt = `You are a helpful writing assistant. Continue writing the following markdown document naturally from where it left off. Do not repeat the original text. Provide only the new text.\n\n---\n\n${content}`;
+                const continuation = await callGemini(prompt);
+                if (continuation) {
+                    const currentDoc = simplemde.codemirror.getDoc();
+                    const lastLine = currentDoc.lastLine();
+                    const endOfDoc = { line: lastLine, ch: currentDoc.getLine(lastLine).length };
+                    currentDoc.replaceRange(`\n\n${continuation}`, endOfDoc);
+                }
+            });
+
+        });
+    </script>
+</body>
+</html>
